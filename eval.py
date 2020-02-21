@@ -39,10 +39,10 @@ parser.add_argument('--result_path', type=str,
 parser.add_argument('--log_step', type=int , default=10,
                     help='step size for prining log info')
 parser.add_argument('--model_num', type=int , default=0,
-                    help='step size for prining log info')
+                    help='number of epoch at which model is saved')
 
 parser.add_argument('--batch_size', type=int, default=64)
-parser.add_argument('--num_workers', type=int, default=0)
+parser.add_argument('--num_workers', type=int, default=2)
 
 parser.add_argument('--vocab_path', type=str, default='./models/vocab.pkl',
                     help='path for vocabulary wrapper')
@@ -66,7 +66,7 @@ challenge_dir = '../VIST-Challenge-NAACL-2018/'
 image_dir = './data/test/'
 sis_path = args.sis_path
 result_path = args.result_path
-embed_path = './models/embed-' + str(args.model_num) + '.pkl'
+# embed_path = './models/embed-' + str(args.model_num) + '.pkl'
 encoder_path = './models/encoder-' + str(args.model_num) + '.pkl'
 decoder_path = './models/decoder-' + str(args.model_num) + '.pkl'
 

@@ -184,7 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrained_epoch', type=int, default=0)
     parser.add_argument('--num_epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     parser.add_argument('--weight_decay', type=float, default=1e-5)
     args = parser.parse_args()
