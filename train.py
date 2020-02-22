@@ -18,6 +18,13 @@ def to_var(x):
     return Variable(x)
 
 def main(args):
+    seed = 2020
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
     # Create model directory
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
@@ -108,10 +115,6 @@ def main(args):
         avg_loss /= (args.batch_size * total_train_step * 5)
         print('Epoch [%d/%d], Average Train Loss: %.4f, Average Train Perplexity: %5.4f' %(epoch + 1, args.num_epochs, avg_loss, np.exp(avg_loss)))
 
-        # Save the models
-        torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
-        torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))
-
         # Validation
         encoder.eval()
         decoder.eval()
@@ -144,9 +147,22 @@ def main(args):
         avg_loss /= (args.batch_size * total_val_step * 5)
         print('Epoch [%d/%d], Average Val Loss: %.4f, Average Val Perplexity: %5.4f' %(epoch + 1, args.num_epochs, avg_loss, np.exp(avg_loss)))
 
-        #Termination Condition
-        overfit_warn = overfit_warn + 1 if (min_avg_loss < avg_loss) else 0
-        min_avg_loss = min(min_avg_loss, avg_loss)
+        # Perform early stopping and save model
+        if min_avg_loss < avg_loss:
+            overfit_warn += 1
+
+            encoder.train()
+            decoder.train()
+            # Remove previous saved model
+            for file_name in os.listdir(args.model_path):
+                if file_name.startswith('decoder-') or file_name.startswith('encoder-'):
+                    os.remove(os.path.join(args.model_path, file_name))
+            torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
+            torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))
+
+            min_avg_loss = avg_loss
+        else:
+            overfit_warn = 0
 
         if overfit_warn >= 5:
             break
@@ -171,7 +187,7 @@ if __name__ == '__main__':
                         default='./data/sis/val.story-in-sequence.json',
                         help='path for val sis json file')
     parser.add_argument('--log_step', type=int , default=20,
-                        help='step size for prining log info')
+                        help='step size for printing log info')
     parser.add_argument('--img_feature_size', type=int , default=1024 ,
                         help='dimension of image feature')
     parser.add_argument('--embed_size', type=int , default=256 ,
