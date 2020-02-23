@@ -148,8 +148,8 @@ def main(args):
         print('Epoch [%d/%d], Average Val Loss: %.4f, Average Val Perplexity: %5.4f' %(epoch + 1, args.num_epochs, avg_loss, np.exp(avg_loss)))
 
         # Perform early stopping and save model
-        if min_avg_loss < avg_loss:
-            overfit_warn += 1
+        if min_avg_loss > avg_loss:
+            overfit_warn = 0
 
             encoder.train()
             decoder.train()
@@ -162,7 +162,7 @@ def main(args):
 
             min_avg_loss = avg_loss
         else:
-            overfit_warn = 0
+            overfit_warn += 1
 
         if overfit_warn >= 5:
             break

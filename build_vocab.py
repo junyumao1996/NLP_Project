@@ -57,6 +57,8 @@ def build_vocab(sis_file, threshold):
     return vocab
 
 def main(args):
+    nltk.download('punkt')
+    
     vocab = build_vocab(sis_file=args.sis_path,
                         threshold=args.threshold)
     vocab_path = args.vocab_path
