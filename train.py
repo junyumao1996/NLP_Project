@@ -72,6 +72,8 @@ def main(args):
     criterion = nn.CrossEntropyLoss()
     params = decoder.get_params() + encoder.get_params()
     optimizer = torch.optim.Adam(params, lr=args.learning_rate, weight_decay=args.weight_decay)
+    if args.pretrained_epoch > 0:
+        optimizer.load_state_dict(torch.load('./models/optimizer-' + str(pretrained_epoch) + '.pkl'))
 
     total_train_step = len(train_data_loader)
     total_val_step = len(val_data_loader)
@@ -163,6 +165,7 @@ def main(args):
                     os.remove(os.path.join(args.model_path, file_name))
             torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
             torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))
+            torch.save(optimizer.state_dict(), os.path.join(args.model_path, 'optimizer-%d.pkl' %(epoch+1)))
 
             min_avg_loss = avg_loss
         else:
