@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pickle
 import random
+import yaml
 from data_loader import get_loader
 from build_vocab import Vocabulary
 from model import EncoderStory, DecoderStory
@@ -47,12 +48,15 @@ def main(args):
     with open(args.vocab_path, 'rb') as f:
         vocab = pickle.load(f)
 
+    with open(args.config_path, 'r') as f:
+        config = yaml.load(f)
+
     # Build data loader
     train_data_loader = get_loader(args.train_image_dir, args.train_sis_path, vocab, train_transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_data_loader = get_loader(args.val_image_dir, args.val_sis_path, vocab, val_transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-    decoder = DecoderStory(args.embed_size, args.hidden_size, vocab)
+    decoder = DecoderStory(args.embed_size, args.hidden_size, vocab, config)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -186,6 +190,9 @@ if __name__ == '__main__':
     parser.add_argument('--val_sis_path', type=str,
                         default='./data/sis/val.story-in-sequence.json',
                         help='path for val sis json file')
+    parser.add_argument('--config_path', type=str,
+                        default='./config/config.yaml',
+                        help='path for configuration file')
     parser.add_argument('--log_step', type=int , default=20,
                         help='step size for printing log info')
     parser.add_argument('--img_feature_size', type=int , default=1024 ,
