@@ -174,11 +174,14 @@ class DecoderRNN(nn.Module):
         if self.decoder_attention:
             features = features.view(-1, self.num_glocal_features, self.hidden_size)
 
+            # for each image
             for i, length in enumerate(lengths):
                 output = torch.zeros([self.hidden_size], dtype=torch.float32).cuda()
                 seq_output = torch.zeros([1, length - 1, self.hidden_size], dtype=torch.float32).cuda()
 
                 for j in range(length - 1):
+                    # for each step, compare the last output and all glocal features,
+                    # to get weighted sum of glocal features
                     scores = torch.matmul(features[i], output)
                     scores = F.softmax(scores, 0).unsqueeze(1)
                     feature_input = torch.sum(scores * features[i], axis=0)
@@ -209,29 +212,48 @@ class DecoderRNN(nn.Module):
 
 
     def inference(self, features):
+        '''
+        features: (5, num_glocal_features * hidden_size)
+        '''
         results = []
         (hn, cn) = self.init_hidden()
         vocab = self.vocab
         end_vocab = vocab('<end>')
         forbidden_list = [vocab('<pad>'), vocab('<start>'), vocab('<unk>')]
         termination_list = [vocab('.'), vocab('?'), vocab('!')]
-        function_list = [vocab('<end>'), vocab('.'), vocab('?'), vocab('!'), vocab('a'), vocab('an'), vocab('am'), vocab('is'), vocab('was'), vocab('are'), vocab('were'), vocab('do'), vocab('does'), vocab('did')]
+        function_list = [
+            vocab('<end>'), vocab('.'), vocab('?'), vocab('!'), vocab('a'), vocab('an'), vocab('am'), 
+            vocab('is'), vocab('was'), vocab('are'), vocab('were'), vocab('do'), vocab('does'), vocab('did')
+        ]
 
         cumulated_word = []
         for feature in features:
+            if self.decoder_attention:
+                last_output = torch.zeros([self.hidden_size], dtype=torch.float32).cuda()
 
-            feature = feature.unsqueeze(0).unsqueeze(0)
+                feature_input = feature.view(self.num_glocal_features, self.hidden_size)
+                scores = torch.matmul(feature_input, last_output)
+                scores = F.softmax(scores, 0).unsqueeze(1)
+                feature_input = torch.sum(scores * feature_input, axis=0)
+            else:
+                feature_input = feature
+
+            feature_input = feature_input.unsqueeze(0).unsqueeze(0)
             predicted = torch.tensor([1], dtype=torch.long).cuda()
-            lstm_input = torch.cat((feature, self.embed(predicted).unsqueeze(1)), 2)
+            lstm_input = torch.cat((feature_input, self.embed(predicted).unsqueeze(1)), 2)
             sampled_ids = [predicted,]
 
             count = 0
             prob_sum = 1.0
 
+            # maximum length 50
             for i in range(50):
                 outputs, (hn, cn) = self.lstm(lstm_input, (hn, cn))
+                if self.decoder_attention:
+                    last_output = outputs.squeeze(0).squeeze(0)
                 outputs = self.linear(outputs.squeeze(1))
 
+                # get output word distribution and sample
                 if predicted not in termination_list:
                     outputs[0][end_vocab] = -100.0
 
@@ -267,7 +289,15 @@ class DecoderRNN(nn.Module):
                 if predicted == 2:
                     break
 
-                lstm_input = torch.cat((feature, self.embed(predicted).unsqueeze(1)), 2)
+                if self.decoder_attention:
+                    feature_input = feature.view(self.num_glocal_features, self.hidden_size)
+                    scores = torch.matmul(feature_input, last_output)
+                    scores = F.softmax(scores, 0).unsqueeze(1)
+                    feature_input = torch.sum(scores * feature_input, axis=0)
+                else:
+                    feature_input = feature
+
+                lstm_input = torch.cat((feature_input, self.embed(predicted).unsqueeze(1)), 2)
 
             results.append(sampled_ids)
 
