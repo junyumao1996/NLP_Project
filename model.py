@@ -297,6 +297,7 @@ class DecoderRNN(nn.Module):
                 else:
                     feature_input = feature
 
+                feature_input = feature_input.unsqueeze(0).unsqueeze(0)
                 lstm_input = torch.cat((feature_input, self.embed(predicted).unsqueeze(1)), 2)
 
             results.append(sampled_ids)
