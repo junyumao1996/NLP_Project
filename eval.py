@@ -6,6 +6,7 @@ import argparse
 import pickle
 import random
 import os
+import yaml
 import subprocess
 from data_loader import get_loader
 from torch.autograd import Variable
@@ -46,6 +47,9 @@ parser.add_argument('--num_workers', type=int, default=2)
 
 parser.add_argument('--vocab_path', type=str, default='./models/vocab.pkl',
                     help='path for vocabulary wrapper')
+parser.add_argument('--config_path', type=str,
+                    default='./config/config.yaml',
+                    help='path for configuration file')
 
 parser.add_argument('--img_feature_size', type=int , default=1024 ,
                     help='dimension of image feature')
@@ -80,10 +84,13 @@ transform = transforms.Compose([
 with open(args.vocab_path, 'rb') as f:
     vocab = pickle.load(f)
 
+with open(args.config_path, 'r') as f:
+    config = yaml.load(f)
+
 data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
 encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-decoder = DecoderStory(args.embed_size, args.hidden_size, vocab)
+decoder = DecoderStory(args.embed_size, args.hidden_size, vocab, config)
 
 encoder.load_state_dict(torch.load(encoder_path))
 decoder.load_state_dict(torch.load(decoder_path))

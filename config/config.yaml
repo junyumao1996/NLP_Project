@@ -1,0 +1,6 @@
+decoder_attention:
+    enable: True
+    num_glocal_features: 8
+
+spacial_attention:
+    enable: False
