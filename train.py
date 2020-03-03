@@ -55,7 +55,7 @@ def main(args):
     train_data_loader = get_loader(args.train_image_dir, args.train_sis_path, vocab, train_transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_data_loader = get_loader(args.val_image_dir, args.val_sis_path, vocab, val_transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
+    encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers, config)
     decoder = DecoderStory(args.embed_size, args.hidden_size, vocab, config)
 
     pretrained_epoch = 0

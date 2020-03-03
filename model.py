@@ -10,12 +10,22 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
 from collections import Counter
 
+from non_local import NONLocalBlock2D
+
 class EncoderCNN(nn.Module):
-    def __init__(self, target_size):
+    def __init__(self, target_size, config):
         super(EncoderCNN, self).__init__()
 
+        self.spacial_attention = config['spacial_attention']['enable']
+
         resnet = models.resnet152(pretrained=True)
-        modules = list(resnet.children())[:-1]
+        if self.spacial_attention:
+            modules = list(resnet.children())[:-2]
+            self.non_local = NONLocalBlock2D(in_channels=resnet.fc.in_features, sub_sample=False)
+            self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        else:
+            modules = list(resnet.children())[:-1]
+        
         self.resnet = nn.Sequential(*modules)
         for param in self.resnet.parameters():
             param.requires_grad = False
@@ -34,6 +44,11 @@ class EncoderCNN(nn.Module):
     def forward(self, images):
         features = self.resnet(images)
         features = Variable(features.data)
+
+        if self.spacial_attention:
+            features = self.non_local(features)
+            features = self.avgpool(features)
+
         features = features.view(features.size(0), -1)
         features = self.linear(features)
         features = self.bn(features)
@@ -41,12 +56,12 @@ class EncoderCNN(nn.Module):
 
 
 class EncoderStory(nn.Module):
-    def __init__(self, img_feature_size, hidden_size, n_layers):
+    def __init__(self, img_feature_size, hidden_size, n_layers, config):
         super(EncoderStory, self).__init__()
 
         self.hidden_size = hidden_size
         self.n_layers = n_layers
-        self.cnn = EncoderCNN(img_feature_size)
+        self.cnn = EncoderCNN(img_feature_size, config)
         self.lstm = nn.LSTM(img_feature_size, hidden_size, n_layers, batch_first=True, bidirectional=True, dropout=0.5)
         self.linear = nn.Linear(hidden_size * 2 + img_feature_size, hidden_size * 2)
         self.dropout = nn.Dropout(p=0.5)
