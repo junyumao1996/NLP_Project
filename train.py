@@ -161,7 +161,7 @@ def main(args):
             decoder.train()
             # Remove previous saved model
             for file_name in os.listdir(args.model_path):
-                if file_name.startswith('decoder-') or file_name.startswith('encoder-'):
+                if file_name.startswith('decoder-') or file_name.startswith('encoder-') or file_name.startswith('optimizer-'):
                     os.remove(os.path.join(args.model_path, file_name))
             torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
             torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))
