@@ -109,6 +109,8 @@ class DecoderStory(nn.Module):
 class DecoderTransformer(nn.Module):
     def __init__(self, embed_size, nhead, n_layers, vocab, dropout=0.5):
         super(DecoderTransformer, self).__init__()
+        # define tgt_mask
+        self.tgt_mask = None
         # vocabulary
         self.vocab = vocab
         vocab_size = len(vocab)
@@ -152,11 +154,11 @@ class DecoderTransformer(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, features, captions, lengths, tgt_mask=None, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None):
+    def forward(self, features, captions, lengths, tgt_mask=True, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None):
         '''
         features: (5, embed_size)
         '''
-        # waiting for further modifications to tgt_mask and memory_mask...
+        # waiting for further modifications to tgt_mask and memory_mask...  
         # tgt
         embeddings = self.encoder(captions)
         embeddings = self.pos_encoder(embeddings)
@@ -168,7 +170,15 @@ class DecoderTransformer(nn.Module):
         for i, length in enumerate(lengths):
             tgt = embeddings[i][0:length - 1]
             memory = features[i]
-            output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1))
+            # generate mask for tgt
+            if tgt_mask == True:
+                device = tgt.device
+                # judge if the size of mask needs to change or not
+                if self.tgt_mask is None or self.tgt_mask.size(0) != len(tgt):
+                    mask = self._generate_square_subsequent_mask(len(tgt)).to(device)
+                    self.tgt_mask = mask
+                
+            output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1),tgt_mask=self.tgt_mask)
             output = self.decoder(output.squeeze(1))
             output = torch.cat((self.start_vec, output), 0)
             outputs.append(output)
