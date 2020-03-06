@@ -8,7 +8,7 @@ import random
 import yaml
 from data_loader import get_loader
 from build_vocab import Vocabulary
-from model import EncoderStory, DecoderStory
+from Transformer_model_v1 import EncoderStory, DecoderStory
 from torch.autograd import Variable
 from torchvision import transforms
 from PIL import Image
@@ -56,7 +56,7 @@ def main(args):
     val_data_loader = get_loader(args.val_image_dir, args.val_sis_path, vocab, val_transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-    decoder = DecoderStory(args.embed_size, args.hidden_size, vocab, config)
+    decoder = DecoderStory(args.embed_size, 4, 4, args.hidden_size, vocab)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -161,7 +161,7 @@ def main(args):
             decoder.train()
             # Remove previous saved model
             for file_name in os.listdir(args.model_path):
-                if file_name.startswith('decoder-') or file_name.startswith('encoder-'):
+                if file_name.startswith('decoder-') or file_name.startswith('encoder-') or file_name.startswith('optimizer-'):
                     os.remove(os.path.join(args.model_path, file_name))
             torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
             torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))

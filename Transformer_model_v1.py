@@ -80,7 +80,7 @@ class DecoderStory(nn.Module):
         super(DecoderStory, self).__init__()
 
         self.embed_size = embed_size
-        self.linear = nn.Linear(hidden_size * 2, hidden_size)
+        self.linear = nn.Linear(hidden_size * 2, embed_size)
         self.dropout = nn.Dropout(dropout)
         self.transformer = DecoderTransformer(embed_size, nhead, n_layers, vocab, dropout)
         self.init_weights()
@@ -153,25 +153,31 @@ class DecoderTransformer(nn.Module):
         return mask
 
     def forward(self, features, captions, lengths, tgt_mask=None, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None):
+        '''
+        features: (5, embed_size)
+        '''
         # waiting for further modifications to tgt_mask and memory_mask...
         # tgt
         embeddings = self.encoder(captions)
         embeddings = self.pos_encoder(embeddings)
         # story features are treated as memory
-        features = features.unsqueeze(1).expand(-1, np.amax(lengths), -1)
+        features = features.unsqueeze(1)
 
         outputs = []
 
         for i, length in enumerate(lengths):
             tgt = embeddings[i][0:length - 1]
-            memory = features
-            output = self.transformer_decoder(tgt.unsqueeze(0), memory.unsqueeze(0))
-            output = self.decoder(output[0])
+            memory = features[i]
+            output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1))
+            output = self.decoder(output.squeeze(1))
             output = torch.cat((self.start_vec, output), 0)
             outputs.append(output)
         return outputs
 
     def inference(self, features):
+        '''
+        features: (5, embed_size)
+        '''
         results = []
         vocab = self.vocab
         end_vocab = vocab('<end>')
