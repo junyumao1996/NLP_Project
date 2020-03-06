@@ -192,9 +192,11 @@ class DecoderTransformer(nn.Module):
 
             feature = feature.unsqueeze(0).unsqueeze(0)
             predicted = torch.tensor([1], dtype=torch.long).cuda()
+            # store all the previous outputs for next input
+            next_input = [1]
             # initialize input for transformer decoder
             infer_memory = feature
-            infer_tgt = self.pos_encoder(self.encoder(predicted)).unsqueeze(1)
+            infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda())).unsqueeze(1)
 
             sampled_ids = [predicted, ]
 
@@ -202,19 +204,20 @@ class DecoderTransformer(nn.Module):
             prob_sum = 1.0
 
             for i in range(50):
-                outputs = self.transformer_decoder(infer_tgt.unsqueeze(0), infer_memory.unsqueeze(0))
+                outputs = self.transformer_decoder(infer_tgt, infer_memory)
                 outputs = self.decoder(outputs.squeeze(1))
 
                 if predicted not in termination_list:
-                    outputs[0][end_vocab] = -100.0
+                    # we only consider the last output token
+                    outputs[-1][end_vocab] = -100.0
 
                 for forbidden in forbidden_list:
-                    outputs[0][forbidden] = -100.0
+                    outputs[-1][forbidden] = -100.0
 
                 cumulated_counter = Counter()
                 cumulated_counter.update(cumulated_word)
 
-                prob_res = outputs[0]
+                prob_res = outputs[-1]
                 prob_res = self.softmax(prob_res)
                 for word, cnt in cumulated_counter.items():
                     if cnt > 0 and word not in function_list:
@@ -233,15 +236,15 @@ class DecoderTransformer(nn.Module):
 
                 predicted, _ = counter.most_common(1)[0]
                 cumulated_word.append(predicted)
+                next_input.append(predicted)
 
-                predicted = torch.from_numpy(np.array([predicted])).cuda()
+                predicted = torch.from_numpy(np.array(next_input)).cuda()
                 sampled_ids.append(predicted)
 
                 if predicted == 2:
                     break
                 # update input for transformer decoder
-                infer_memory = feature
-                infer_tgt = self.pos_encoder(self.encoder(predicted)).unsqueeze(1)
+                infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda())).unsqueeze(1)
 
 
             results.append(sampled_ids)
