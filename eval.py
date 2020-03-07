@@ -12,7 +12,7 @@ from data_loader import get_loader
 from torch.autograd import Variable
 from torchvision import transforms
 from build_vocab import Vocabulary
-from model import EncoderStory, DecoderStory
+from Transformer_model_v1 import EncoderStory, DecoderStory
 from PIL import Image
 import json
 
@@ -89,8 +89,8 @@ with open(args.config_path, 'r') as f:
 
 data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers, config)
-decoder = DecoderStory(args.embed_size, args.hidden_size, vocab, config)
+encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
+decoder = DecoderStory(args.embed_size, 2, 2, args.hidden_size, vocab)
 
 encoder.load_state_dict(torch.load(encoder_path))
 decoder.load_state_dict(torch.load(decoder_path))

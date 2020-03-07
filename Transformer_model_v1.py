@@ -154,14 +154,14 @@ class DecoderTransformer(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, features, captions, lengths, tgt_mask=True, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None):
+    def forward(self, features, captions, lengths, tgt_mask=True):
         '''
         features: (5, embed_size)
         '''
         # waiting for further modifications to tgt_mask and memory_mask...  
         # tgt
         embeddings = self.encoder(captions)
-        embeddings = self.pos_encoder(embeddings)
+        embeddings = self.pos_encoder(embeddings.transpose(0, 1)).transpose(0, 1)
         # story features are treated as memory
         features = features.unsqueeze(1)
 
@@ -178,7 +178,7 @@ class DecoderTransformer(nn.Module):
                     mask = self._generate_square_subsequent_mask(len(tgt)).to(device)
                     self.tgt_mask = mask
                 
-            output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1),tgt_mask=self.tgt_mask)
+            output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1), tgt_mask=self.tgt_mask)
             output = self.decoder(output.squeeze(1))
             output = torch.cat((self.start_vec, output), 0)
             outputs.append(output)
@@ -206,7 +206,7 @@ class DecoderTransformer(nn.Module):
             next_input = [1]
             # initialize input for transformer decoder
             infer_memory = feature
-            infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda())).unsqueeze(1)
+            infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda()).unsqueeze(1))
 
             sampled_ids = [predicted, ]
 
@@ -214,7 +214,9 @@ class DecoderTransformer(nn.Module):
             prob_sum = 1.0
 
             for i in range(50):
-                outputs = self.transformer_decoder(infer_tgt, infer_memory)
+                mask = self._generate_square_subsequent_mask(len(infer_tgt)).cuda()
+
+                outputs = self.transformer_decoder(infer_tgt, infer_memory, tgt_mask=mask)
                 outputs = self.decoder(outputs.squeeze(1))
 
                 if predicted not in termination_list:
@@ -248,13 +250,13 @@ class DecoderTransformer(nn.Module):
                 cumulated_word.append(predicted)
                 next_input.append(predicted)
 
-                predicted = torch.from_numpy(np.array(next_input)).cuda()
+                predicted = torch.from_numpy(np.array([predicted])).cuda()
                 sampled_ids.append(predicted)
 
                 if predicted == 2:
                     break
                 # update input for transformer decoder
-                infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda())).unsqueeze(1)
+                infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda()).unsqueeze(1))
 
 
             results.append(sampled_ids)
@@ -277,5 +279,8 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
+        '''
+        x : (seq, batch, embed)
+        '''
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
