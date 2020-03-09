@@ -132,11 +132,12 @@ class DecoderTransformer(nn.Module):
             # load to nn.embedding layer
             print("Unzip embedding file...")
             w2v = gensim.models.KeyedVectors.load_word2vec_format(save_path, binary=True)
-            priint("Done")
+            print("Done")
             print("Loading pre-train embedding...")
             pre_matrix = load_pretrained_embed(vocab, embed_size, w2v)
             self.encoder = nn.Embedding(vocab_size, embed_size).from_pretrained(pre_matrix, freeze=False)
             print("Done")
+            del w2v
 
         self.pos_encoder = PositionalEncoding(embed_size, dropout)
         # define transformer decoder_layer and decoder
