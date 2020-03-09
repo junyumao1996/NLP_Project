@@ -122,19 +122,20 @@ class DecoderTransformer(nn.Module):
             self.encoder = nn.Embedding(vocab_size, embed_size)
         else:
             # download pre-trained gensim embedding
-            if os.path.exists('./models/GoogleNews-vectors-negative300.bin.gz') == False:
+            save_path = '/cs/student/vbox/tianjliu/nlp/GoogleNews-vectors-negative300.bin.gz'
+            if os.path.exists(save_path) == False:
                 print("Downloading gensim embedding...")
                 # wv = api.load('word2vec-google-news-300')
                 url = 'https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz'
-                urllib.request.urlretrieve(url, './models/GoogleNews-vectors-negative300.bin.gz')
+                urllib.request.urlretrieve(url, save_path)
                 print("Done")
             # load to nn.embedding layer
             print("Unzip embedding file...")
-            w2v = gensim.models.KeyedVectors.load_word2vec_format('./models/GoogleNews-vectors-negative300.bin.gz',binary=True)
+            w2v = gensim.models.KeyedVectors.load_word2vec_format(save_path, binary=True)
             priint("Done")
             print("Loading pre-train embedding...")
             pre_matrix = load_pretrained_embed(vocab, embed_size, w2v)
-            self.encoder = nn.Embedding(vocab_size, embed_size).from_pretrained(pre_matrix)
+            self.encoder = nn.Embedding(vocab_size, embed_size).from_pretrained(pre_matrix, freeze=False)
             print("Done")
 
         self.pos_encoder = PositionalEncoding(embed_size, dropout)
