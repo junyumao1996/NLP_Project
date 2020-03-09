@@ -11,7 +11,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
 from collections import Counter
 from torch.nn import TransformerDecoder, TransformerDecoderLayer
-
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 class EncoderCNN(nn.Module):
     def __init__(self, target_size):
@@ -43,13 +43,14 @@ class EncoderCNN(nn.Module):
 
 
 class EncoderStory(nn.Module):
-    def __init__(self, img_feature_size, hidden_size, n_layers):
+    def __init__(self, img_feature_size, nhead, n_layers, hidden_size, dropout=0.5):
         super(EncoderStory, self).__init__()
-
         self.hidden_size = hidden_size
         self.n_layers = n_layers
         self.cnn = EncoderCNN(img_feature_size)
-        self.lstm = nn.LSTM(img_feature_size, hidden_size, n_layers, batch_first=True, bidirectional=True, dropout=0.5)
+        
+        self.transformer = EncodeTransformer(n_imgs, img_feature_size, nhead, n_layers, 0.5)
+        
         self.linear = nn.Linear(hidden_size * 2 + img_feature_size, hidden_size * 2)
         self.dropout = nn.Dropout(p=0.5)
         self.bn = nn.BatchNorm1d(hidden_size * 2, momentum=0.01)
@@ -66,13 +67,52 @@ class EncoderStory(nn.Module):
     def forward(self, story_images):
         data_size = story_images.size()
         local_cnn = self.cnn(story_images.view(-1, data_size[2], data_size[3], data_size[4]))
-        global_rnn, (hn, cn) = self.lstm(local_cnn.view(data_size[0], data_size[1], -1))
+        global_rnn = self.lstm(local_cnn.view(data_size[0], data_size[1], -1))
         glocal = torch.cat((local_cnn.view(data_size[0], data_size[1], -1), global_rnn), 2)
         output = self.linear(glocal)
         output = self.dropout(output)
         output = self.bn(output.contiguous().view(-1, self.hidden_size * 2)).view(data_size[0], data_size[1], -1)
 
-        return output, (hn, cn)
+        return output
+
+class EncodeTransformer(nn.Module):
+
+    def __init__(self, n_imgs, feature_size, nhead, nlayers, dropout=0.5):
+        super(TransformerModel, self).__init__()
+        
+        self.model_type = 'Transformer'
+        self.src_mask = None
+        self.pos_encoder = PositionalEncoding(feature_size, dropout)
+        encoder_layers = TransformerEncoderLayer(feature_size, nhead)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.encoder = nn.Embedding(n_imgs, feature_size)
+        self.feature_size = feature_size
+        #self.decoder = nn.Linear(feature_size, n_imgs)
+
+        self.init_weights()
+
+    def _generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
+    def init_weights(self):
+        initrange = 0.1
+        self.encoder.weight.data.uniform_(-initrange, initrange)
+        #self.decoder.bias.data.zero_()
+        #self.decoder.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, src):
+        if self.src_mask is None or self.src_mask.size(0) != len(src):
+            device = src.device
+            mask = self._generate_square_subsequent_mask(len(src)).to(device)
+            self.src_mask = mask
+
+        src = self.encoder(src) * math.sqrt(self.feature_size)
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src, self.src_mask)
+        #output = self.decoder(output)
+        return output
 
 
 class DecoderStory(nn.Module):
