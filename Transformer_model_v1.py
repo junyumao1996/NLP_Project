@@ -118,8 +118,9 @@ class DecoderTransformer(nn.Module):
         self.vocab = vocab
         vocab_size = len(vocab)
         # encoder for embedding and positional encoding
-        self.encoder = nn.Embedding(vocab_size, embed_size)
-        if pretrain_embed == True:
+        if pretrain_embed == False:
+            self.encoder = nn.Embedding(vocab_size, embed_size)
+        else:
             # download pre-trained gensim embedding
             if os.path.exists('./models/GoogleNews-vectors-negative300.bin.gz') == False:
                 print("Downloading gensim embedding...")
@@ -133,7 +134,7 @@ class DecoderTransformer(nn.Module):
             priint("Done")
             print("Loading pre-train embedding...")
             pre_matrix = load_pretrained_embed(vocab, embed_size, w2v)
-            self.encoder.from_pretrained(pre_matrix)
+            self.encoder = nn.Embedding(vocab_size, embed_size).from_pretrained(pre_matrix)
             print("Done")
 
         self.pos_encoder = PositionalEncoding(embed_size, dropout)
