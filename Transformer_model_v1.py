@@ -11,7 +11,10 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
 from collections import Counter
 from torch.nn import TransformerDecoder, TransformerDecoderLayer
-
+import gensim
+import gensim.downloader as api
+import urllib.request
+import os
 
 class EncoderCNN(nn.Module):
     def __init__(self, target_size):
@@ -76,13 +79,13 @@ class EncoderStory(nn.Module):
 
 
 class DecoderStory(nn.Module):
-    def __init__(self, embed_size, nhead, n_layers, hidden_size, vocab, dropout=0.5):
+    def __init__(self, embed_size, nhead, n_layers, hidden_size, vocab, dropout=0.5, pretrain_embed=False):
         super(DecoderStory, self).__init__()
 
         self.embed_size = embed_size
         self.linear = nn.Linear(hidden_size * 2, embed_size)
         self.dropout = nn.Dropout(dropout)
-        self.transformer = DecoderTransformer(embed_size, nhead, n_layers, vocab, dropout)
+        self.transformer = DecoderTransformer(embed_size, nhead, n_layers, vocab, dropout, pretrain_embed)
         self.init_weights()
 
     def get_params(self):
@@ -107,7 +110,7 @@ class DecoderStory(nn.Module):
 
 
 class DecoderTransformer(nn.Module):
-    def __init__(self, embed_size, nhead, n_layers, vocab, dropout=0.5):
+    def __init__(self, embed_size, nhead, n_layers, vocab, dropout=0.5,  pretrain_embed=False):
         super(DecoderTransformer, self).__init__()
         # define tgt_mask
         self.tgt_mask = None
@@ -116,6 +119,23 @@ class DecoderTransformer(nn.Module):
         vocab_size = len(vocab)
         # encoder for embedding and positional encoding
         self.encoder = nn.Embedding(vocab_size, embed_size)
+        if pretrain_embed == True:
+            # download pre-trained gensim embedding
+            if os.path.exists('./models/GoogleNews-vectors-negative300.bin.gz') == False:
+                print("Downloading gensim embedding...")
+                # wv = api.load('word2vec-google-news-300')
+                url = 'https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz'
+                urllib.request.urlretrieve(url, './models/GoogleNews-vectors-negative300.bin.gz')
+                print("Done")
+            # load to nn.embedding layer
+            print("Unzip embedding file...")
+            w2v = gensim.models.KeyedVectors.load_word2vec_format('./models/GoogleNews-vectors-negative300.bin.gz',binary=True)
+            priint("Done")
+            print("Loading pre-train embedding...")
+            pre_matrix = load_pretrained_embed(vocab, embed_size, w2v)
+            self.encoder.from_pretrained(pre_matrix)
+            print("Done")
+
         self.pos_encoder = PositionalEncoding(embed_size, dropout)
         # define transformer decoder_layer and decoder
         decoder_layer = nn.TransformerDecoderLayer(embed_size, nhead)
@@ -284,3 +304,16 @@ class PositionalEncoding(nn.Module):
         '''
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
+
+
+def load_pretrained_embed(vocab, embed_size, wv_model):
+    """
+    Transfer pre-trained embedding model to current vocabulary.
+    """
+    vocab_size = len(vocab)
+    pre_matrix = np.zeros((vocab_size, embed_size))
+    for token in vocab.word2idx.keys():
+        idx = vocab.word2idx[token]
+        if token in wv_model.vocab:
+            pre_matrix[idx, :] = wv_model[token]
+    return torch.FloatTensor(pre_matrix)
