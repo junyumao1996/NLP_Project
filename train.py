@@ -51,12 +51,17 @@ def main(args):
     with open(args.config_path, 'r') as f:
         config = yaml.load(f)
 
+
     # Build data loader
     train_data_loader = get_loader(args.train_image_dir, args.train_sis_path, vocab, train_transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_data_loader = get_loader(args.val_image_dir, args.val_sis_path, vocab, val_transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
+    # Use the pre-trained Glove word embedding (with 300d embedding size)
+    if args.static_embedding == True:
+        args.embed_size = 300
+
     encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-    decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab)
+    decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -82,7 +87,7 @@ def main(args):
     overfit_warn = 0
 
     for epoch in range(args.num_epochs):
-
+        
         if epoch < pretrained_epoch:
             continue
 
@@ -206,6 +211,12 @@ if __name__ == '__main__':
                         help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int , default=2 ,
                         help='number of layers in lstm')
+    
+    parser.add_argument('--pre_train', dest='static_embedding', action='store_true', 
+                        help='use of pre-trained embedding (Gensim)')
+    parser.add_argument('--no-pre_train', dest='static_embedding', action='store_false', 
+                        help='no use of pre-trained embedding (Gensim)')
+    parser.set_defaults(static_embedding=False)
 
     parser.add_argument('--pretrained_epoch', type=int, default=0)
     parser.add_argument('--num_epochs', type=int, default=100)
