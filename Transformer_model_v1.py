@@ -153,6 +153,7 @@ class DecoderTransformer(nn.Module):
 
         if torch.cuda.is_available():
             self.init_input = self.init_input.cuda()
+        
         # define start vector for a sentence
         self.start_vec = torch.zeros([1, vocab_size], dtype=torch.float32)
         self.start_vec[0][1] = 10000

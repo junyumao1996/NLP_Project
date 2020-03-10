@@ -9,6 +9,7 @@ import yaml
 from data_loader import get_loader
 from build_vocab import Vocabulary
 from Transformer_model_v1 import EncoderStory, DecoderStory
+from Transformer_model_v2 import EncoderStory2
 from torch.autograd import Variable
 from torchvision import transforms
 from PIL import Image
@@ -60,7 +61,8 @@ def main(args):
     if args.static_embedding == True:
         args.embed_size = 300
 
-    encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
+    # encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
+    encoder = EncoderStory2(args.img_feature_size, 4, 2)
     decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
 
     pretrained_epoch = 0
@@ -210,7 +212,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int , default=1024 ,
                         help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int , default=2 ,
-                        help='number of layers in lstm')
+                        help='number of layers in lstm/transfromer encoder/decoder')
     
     parser.add_argument('--pre_train', dest='static_embedding', action='store_true', 
                         help='use of pre-trained embedding (Gensim)')
