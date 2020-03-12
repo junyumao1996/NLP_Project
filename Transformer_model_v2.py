@@ -85,8 +85,8 @@ class EncoderStory2(nn.Module):
     def forward(self, story_images):
         data_size = story_images.size()
         local_cnn = self.cnn(story_images.view(-1, data_size[2], data_size[3], data_size[4]))
-        memory_output = self.transformer_Encoder(local_cnn)
-        return output
+        memory_output = self.transformer_Encoder(local_cnn.view(data_size[0], data_size[1], -1))
+        return memory_output, None
 
 
 class DecoderStory(nn.Module):

@@ -13,6 +13,7 @@ from Transformer_model_v2 import EncoderStory2
 from torch.autograd import Variable
 from torchvision import transforms
 from PIL import Image
+import gc
 
 def to_var(x):
     if torch.cuda.is_available():
@@ -62,8 +63,9 @@ def main(args):
         args.embed_size = 300
 
     # encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-    encoder = EncoderStory2(args.img_feature_size, 4, 2)
-    decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
+    # decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
+    encoder = EncoderStory2(args.img_feature_size, 4, 3)
+    decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab, pretrain_embed=args.static_embedding)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -101,16 +103,18 @@ def main(args):
             encoder.zero_grad()
             loss = 0
             images = to_var(torch.stack(image_stories))
-
+           
             features, _ = encoder(images)
+            # print("features shape", features.shape)
 
             for si, data in enumerate(zip(features, targets_set, lengths_set)):
                 feature = data[0]
                 captions = to_var(data[1])
                 lengths = data[2]
-
+                 
+                # print("feature shape", feature.shape)
                 outputs = decoder(feature, captions, lengths)
-
+		
                 for sj, result in enumerate(zip(outputs, captions, lengths)):
                     loss += criterion(result[0], result[1][0:result[2]])
 
@@ -124,7 +128,8 @@ def main(args):
                 print('Epoch [%d/%d], Train Step [%d/%d], Loss: %.4f, Perplexity: %5.4f'
                       %(epoch + 1, args.num_epochs, bi, total_train_step,
                         loss.item(), np.exp(loss.item())))
-            
+                gc.collect()
+
         avg_loss /= (args.batch_size * total_train_step * 5)
         print('Epoch [%d/%d], Average Train Loss: %.4f, Average Train Perplexity: %5.4f' %(epoch + 1, args.num_epochs, avg_loss, np.exp(avg_loss)))
 
