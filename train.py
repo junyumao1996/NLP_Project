@@ -9,9 +9,11 @@ import yaml
 from data_loader import get_loader
 from build_vocab import Vocabulary
 from Transformer_model_v1 import EncoderStory, DecoderStory
+from Transformer_model_v2 import EncoderStory2
 from torch.autograd import Variable
 from torchvision import transforms
 from PIL import Image
+import gc
 
 def to_var(x):
     if torch.cuda.is_available():
@@ -60,8 +62,10 @@ def main(args):
     if args.static_embedding == True:
         args.embed_size = 300
 
-    encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
-    decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
+    # encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
+    # decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab, pretrain_embed=args.static_embedding)
+    encoder = EncoderStory2(args.img_feature_size, 4, 3)
+    decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab, pretrain_embed=args.static_embedding)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -99,16 +103,18 @@ def main(args):
             encoder.zero_grad()
             loss = 0
             images = to_var(torch.stack(image_stories))
-
+           
             features, _ = encoder(images)
+            # print("features shape", features.shape)
 
             for si, data in enumerate(zip(features, targets_set, lengths_set)):
                 feature = data[0]
                 captions = to_var(data[1])
                 lengths = data[2]
-
+                 
+                # print("feature shape", feature.shape)
                 outputs = decoder(feature, captions, lengths)
-
+		
                 for sj, result in enumerate(zip(outputs, captions, lengths)):
                     loss += criterion(result[0], result[1][0:result[2]])
 
@@ -122,7 +128,8 @@ def main(args):
                 print('Epoch [%d/%d], Train Step [%d/%d], Loss: %.4f, Perplexity: %5.4f'
                       %(epoch + 1, args.num_epochs, bi, total_train_step,
                         loss.item(), np.exp(loss.item())))
-            
+                gc.collect()
+
         avg_loss /= (args.batch_size * total_train_step * 5)
         print('Epoch [%d/%d], Average Train Loss: %.4f, Average Train Perplexity: %5.4f' %(epoch + 1, args.num_epochs, avg_loss, np.exp(avg_loss)))
 
@@ -210,7 +217,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int , default=1024 ,
                         help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int , default=2 ,
-                        help='number of layers in lstm')
+                        help='number of layers in lstm/transfromer encoder/decoder')
     
     parser.add_argument('--pre_train', dest='static_embedding', action='store_true', 
                         help='use of pre-trained embedding (Gensim)')
