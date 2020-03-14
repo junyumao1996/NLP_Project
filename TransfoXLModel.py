@@ -142,7 +142,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
         return new_seq
     ############################################
 
-    def forward(self, padding_len, input_ids=None, mems=None, head_mask=None, inputs_embeds=None):
+    def forward(self, padding_len=None, input_ids=None, mems=None, head_mask=None, inputs_embeds=None):
         r"""
     Return:
         :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.TransfoXLConfig`) and inputs:
@@ -211,7 +211,8 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
 
         ######################
         # input ids padding  #
-        input_ids = self.padding(input_ids, padding_len)
+        if padding_len != None:
+            input_ids = self.padding(input_ids, padding_len)
         ######################
 
         if inputs_embeds is not None:
@@ -235,12 +236,13 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
             ]
         ########################################################################
         # create a new mask for padded input embeddings                        #
-        new_dec_attn_mask = dec_attn_mask.new_ones(padding_len, mlen+padding_len)
-        if padding_len > qlen:
-            new_dec_attn_mask[:qlen, :klen] = dec_attn_mask
-        else:
-            new_dec_attn_mask = dec_attn_mask[:padding_len, :mlen+padding_len]
-        dec_attn_mask = new_dec_attn_mask
+        if padding_len != None:
+            new_dec_attn_mask = dec_attn_mask.new_ones(padding_len, mlen+padding_len)
+            if padding_len > qlen:
+                new_dec_attn_mask[:qlen, :klen] = dec_attn_mask
+            else:
+                new_dec_attn_mask = dec_attn_mask[:padding_len, :mlen+padding_len]
+            dec_attn_mask = new_dec_attn_mask
         ########################################################################
 
 
