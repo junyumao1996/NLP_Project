@@ -114,14 +114,14 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
         # will be used as the extended context. Hence, we only cache
         # the tokens from `mlen + qlen - self.ext_len - self.mem_len`
         # to `mlen + qlen - self.ext_len`.
-        with torch.no_grad():
-            new_mems = []
-            end_idx = mlen + max(0, qlen - 0 - self.ext_len)
-            beg_idx = max(0, end_idx - self.mem_len)
-            for i in range(len(hids)):
 
-                cat = torch.cat([mems[i], hids[i]], dim=0)
-                new_mems.append(cat[beg_idx:end_idx].detach())
+        new_mems = []
+        end_idx = mlen + max(0, qlen - 0 - self.ext_len)
+        beg_idx = max(0, end_idx - self.mem_len)
+        for i in range(len(hids)):
+
+            cat = torch.cat([mems[i], hids[i]], dim=0)
+            new_mems.append(cat[beg_idx:end_idx])
 
         return new_mems
 
