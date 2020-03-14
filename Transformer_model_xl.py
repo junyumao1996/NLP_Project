@@ -44,22 +44,13 @@ class EncoderCNN(nn.Module):
         return features
 
 class EncoderStory(nn.Module):
-    def __init__(self, img_feature_size, output_size, config):
+    def __init__(self, img_feature_size, config):
         super(EncoderStory, self).__init__()
 
-        self.output_size = output_size
         self.cnn = EncoderCNN(img_feature_size, config)
-        self.linear = nn.Linear(img_feature_size, hidden_size)
-        self.dropout = nn.Dropout(p=0.5)
-        self.bn = nn.BatchNorm1d(hidden_size * 2, momentum=0.01)
-        self.init_weights()
 
     def get_params(self):
-        return self.cnn.get_params() + list(self.linear.parameters()) + list(self.bn.parameters())
-
-    def init_weights(self):
-        self.linear.weight.data.normal_(0.0, 0.02)
-        self.linear.bias.data.fill_(0)
+        return self.cnn.get_params()
 
     def forward(self, story_images):
         """
@@ -67,8 +58,48 @@ class EncoderStory(nn.Module):
         """
         data_size = story_images.size()
         image_features = self.cnn(story_images.view(-1, data_size[2], data_size[3], data_size[4])) # (batch * 5, img_feature_size)
-        image_features = self.linear(image_features) # (batch * 5, hidden_size)
-        image_features = self.dropout(image_features)
-        image_features = self.bn(image_features).view(data_size[0], data_size[1], -1) # (batch, 5, hidden_size)
+        image_features = image_features.view(data_size[0], data_size[1], -1) # (batch, 5, img_feature_size)
 
         return image_features
+
+class DecoderStory(nn.Module):
+    def __init__(self, embed_size, encoder_output_size, hidden_size, n_head, n_layers, vocab, config):
+        super(DecoderStory, self).__init__()
+
+        self.xl_config = TransfoXLConfig(
+            vocab_size=len(vocab), d_model=hidden_size, d_embed=embed_size, n_head=n_head, div_val=1, 
+            n_layer=n_layers, tgt_len=50, mem_len=500, adaptive=False
+        )
+
+        self.embed_size = embed_size
+        self.encoder_output_size = encoder_output_size
+        self.hidden_size = hidden_size
+
+        self.dropout = nn.Dropout(p=0.5)
+        self.transformer_xl = TransfoXLModel(self.xl_config)
+
+    def get_params(self):
+        return list(self.transformer_xl.parameters())
+
+    def fuse_memory(self, mems, image_features):
+        """
+        mems: List of (mem_len, batch=1, d_model), len(mems)=n_layer
+        image_features: (5, encoder_output_size)
+
+        returns: identical size of mems
+        """
+        pass
+
+    def forward(self, encoder_features, captions, lengths):
+        """
+        encoder_features: (5, encoder_output_size)
+        captions: (5, padded_seq)
+        lengths: List of seq lengths, len(lengths)=5
+        """
+
+        pass
+    def inference(self, encoder_features):
+        """
+        encoder_features: (5, encoder_output_size)
+        """
+        pass
