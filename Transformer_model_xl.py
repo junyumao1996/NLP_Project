@@ -91,7 +91,7 @@ class DecoderStory(nn.Module):
             self.start_vec = self.start_vec.cuda()
 
     def get_params(self):
-        return list(self.transformer_xl.parameters()) + list(self.fuse_linear.parameters())
+        return list(self.transformer_xl.parameters()) + list(self.fuse_linear.parameters()) + list(self.classifier.parameters())
 
     def fuse_memory(self, mems, image_features):
         """
@@ -139,4 +139,78 @@ class DecoderStory(nn.Module):
         """
         encoder_features: (5, encoder_output_size)
         """
-        pass
+        results = []
+        vocab = self.vocab
+        end_vocab = vocab('<end>')
+        forbidden_list = [vocab('<pad>'), vocab('<start>'), vocab('<unk>')]
+        termination_list = [vocab('.'), vocab('?'), vocab('!')]
+        function_list = [vocab('<end>'), vocab('.'), vocab('?'), vocab('!'), vocab('a'), vocab('an'), vocab('am'),
+                         vocab('is'), vocab('was'), vocab('are'), vocab('were'), vocab('do'), vocab('does'),
+                         vocab('did')]
+
+        cumulated_word = []
+        mems = [torch.zeros(self.mem_len, 1, self.hidden_size).cuda() for _ in range(self.n_layers)]
+
+        for feature in encoder_features:
+            # update memory
+            mems = self.fuse_memory(mems, feature)
+
+            predicted = torch.tensor([1], dtype=torch.long).cuda()
+            # store all the previous outputs for next input
+            next_input = [1]
+            infer_tgt = torch.tensor(next_input, dtype=torch.long).cuda()
+
+            sampled_ids = [predicted, ]
+
+            count = 0
+            prob_sum = 1.0
+
+            for i in range(50):
+                # foward through modules
+                outputs = self.transformer_xl(infer_tgt.unsqueeze(0), mems=mems)
+                last_hidden_states, mems = outputs[:2]                    # last_hidden_states: (1, mem_len - 1, d_model)
+                outputs = self.classifier(last_hidden_states.squeeze(0))  # (mem_len - 1, vocab_size)
+
+                if predicted not in termination_list:
+                    # we only consider the last output token
+                    outputs[-1][end_vocab] = -100.0
+
+                for forbidden in forbidden_list:
+                    outputs[-1][forbidden] = -100.0
+
+                cumulated_counter = Counter()
+                cumulated_counter.update(cumulated_word)
+
+                prob_res = outputs[-1]
+                prob_res = self.softmax(prob_res)
+                for word, cnt in cumulated_counter.items():
+                    if cnt > 0 and word not in function_list:
+                        prob_res[word] = prob_res[word] / (1.0 + cnt * 5.0)
+                prob_res = prob_res * (1.0 / prob_res.sum())
+
+                candidate = []
+                for i in range(100):
+                    index = np.random.choice(prob_res.size()[0], 1, p=prob_res.cpu().detach().numpy())[0]
+                    candidate.append(index)
+
+                counter = Counter()
+                counter.update(candidate)
+
+                sorted_candidate = sorted(counter.items(), key=operator.itemgetter(1), reverse=True)
+
+                predicted, _ = counter.most_common(1)[0]
+                cumulated_word.append(predicted)
+                next_input.append(predicted)
+
+                predicted = torch.from_numpy(np.array([predicted])).cuda()
+                sampled_ids.append(predicted)
+
+                if predicted == 2:
+                    break
+                # update input for transformer decoder
+                infer_tgt = torch.tensor(next_input, dtype=torch.long).cuda()
+
+
+            results.append(sampled_ids)
+
+        return results
