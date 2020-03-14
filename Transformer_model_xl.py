@@ -9,7 +9,8 @@ import torch.nn.functional as F
 import operator
 from collections import Counter
 
-from transformers import TransfoXLModel, TransfoXLConfig
+from transformers import TransfoXLConfig
+from TransfoXLModel import TransfoXLModel
 
 
 class EncoderCNN(nn.Module):
@@ -126,7 +127,7 @@ class DecoderStory(nn.Module):
             copy_len = min(length - 1, self.mem_len - 1)
             caption[:copy_len] = captions[i][:copy_len]
 
-            outputs = self.transformer_xl(caption.unsqueeze(0), mems=mems)
+            outputs = self.transformer_xl(caption.unsqueeze(0), padding_len=self.mem_len - 1, mems=mems)
             last_hidden_states, mems = outputs[:2] # last_hidden_states: (1, mem_len - 1, d_model)
             
             output = self.classifier(last_hidden_states.squeeze(0)) # (mem_len - 1, vocab_size)
@@ -167,9 +168,9 @@ class DecoderStory(nn.Module):
 
             for i in range(50):
                 # foward through modules
-                outputs = self.transformer_xl(infer_tgt.unsqueeze(0), mems=mems)
-                last_hidden_states, mems = outputs[:2]                    # last_hidden_states: (1, mem_len - 1, d_model)
-                outputs = self.classifier(last_hidden_states.squeeze(0))  # (mem_len - 1, vocab_size)
+                outputs = self.transformer_xl(infer_tgt.unsqueeze(0), padding_len=None, mems=mems)
+                last_hidden_states, mems = outputs[:2]
+                outputs = self.classifier(last_hidden_states.squeeze(0))
 
                 if predicted not in termination_list:
                     # we only consider the last output token
