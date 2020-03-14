@@ -35,7 +35,10 @@ class EncoderCNN(nn.Module):
         self.init_weights()
 
     def get_params(self):
-        return list(self.linear.parameters()) + list(self.bn.parameters())
+        if self.spacial_attention:
+            return list(self.linear.parameters()) + list(self.bn.parameters()) + list(self.non_local.parameters())
+        else:
+            return list(self.linear.parameters()) + list(self.bn.parameters())
 
     def init_weights(self):
         self.linear.weight.data.normal_(0.0, 0.02)
