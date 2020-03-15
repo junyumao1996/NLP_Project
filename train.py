@@ -66,7 +66,7 @@ def main(args):
     # encoder = EncoderStory2(args.img_feature_size, 4, 3)
     # decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab, pretrain_embed=args.static_embedding)
     encoder = EncoderStory(args.img_feature_size, config)
-    decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 1, 50, vocab, config)
+    decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 1, args.mem_len, vocab, config)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:
@@ -117,7 +117,11 @@ def main(args):
                 outputs = decoder(feature, captions, lengths)
 		
                 for sj, result in enumerate(zip(outputs, captions, lengths)):
-                    loss += criterion(result[0], result[1][0:result[2]])
+                    if args.pad:
+                        padded_len = min(result[2], args.mem_len)
+                        loss += criterion(result[0][:padded_len], result[1][:padded_len])
+                    else:
+                        loss += criterion(result[0], result[1][0:result[2]])
 
             avg_loss += loss.item()
             loss /= (args.batch_size * 5)
@@ -152,7 +156,11 @@ def main(args):
                 outputs = decoder(feature, captions, lengths)
 
                 for sj, result in enumerate(zip(outputs, captions, lengths)):
-                    loss += criterion(result[0], result[1][0:result[2]])
+                    if args.pad:
+                        padded_len = min(result[2], args.mem_len)
+                        loss += criterion(result[0][:padded_len], result[1][:padded_len])
+                    else:
+                        loss += criterion(result[0], result[1][0:result[2]])
 
             avg_loss += loss.item()
             loss /= (args.batch_size * 5)
@@ -225,6 +233,9 @@ if __name__ == '__main__':
     parser.add_argument('--no-pre_train', dest='static_embedding', action='store_false', 
                         help='no use of pre-trained embedding (Gensim)')
     parser.set_defaults(static_embedding=False)
+
+    parser.add_argument('--pad', dest='pad', action='store_true', default=False, help='use padding')
+    parser.add_argument('--mem_len', type=int, default=50, help='length of memory used in Transformer-XL')
 
     parser.add_argument('--pretrained_epoch', type=int, default=0)
     parser.add_argument('--num_epochs', type=int, default=100)

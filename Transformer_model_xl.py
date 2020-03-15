@@ -128,8 +128,8 @@ class DecoderStory(nn.Module):
             copy_len = min(length - 1, self.mem_len - 1)
             caption[:copy_len] = captions[i][:copy_len]
 
-            outputs = self.transformer_xl(caption.unsqueeze(0), padding_len=self.padding_len, mems=mems)
-            last_hidden_states, mems = outputs[:2] # last_hidden_states: (1, mem_len - 1, d_model)
+            xl_outputs = self.transformer_xl(caption.unsqueeze(0), padding_len=self.padding_len, mems=mems)
+            last_hidden_states, mems = xl_outputs[:2] # last_hidden_states: (1, mem_len - 1, d_model)
             
             output = self.classifier(last_hidden_states.squeeze(0)) # (mem_len - 1, vocab_size)
             output = torch.cat((self.start_vec, output), 0) # (mem_len, vocab_size)
