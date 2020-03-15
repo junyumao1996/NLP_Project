@@ -145,7 +145,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
         return new_seq
     ############################################
 
-    def forward(self, padding_len=None, input_ids=None, mems=None, head_mask=None, inputs_embeds=None):
+    def forward(self, input_ids=None, padding_len=None, mems=None, head_mask=None, inputs_embeds=None):
         r"""
     Return:
         :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.TransfoXLConfig`) and inputs:

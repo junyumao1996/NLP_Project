@@ -81,8 +81,7 @@ class DecoderStory(nn.Module):
         self.n_layers = n_layers
         self.padding_len = mem_len - 1
 
-        # self.fuse_linear = nn.Linear(hidden_size + mem_len, hidden_size)
-        self.fuse_linear = nn.Linear(hidden_size * 2, hidden_size)
+        self.fuse_linear = nn.Linear(hidden_size + encoder_output_size, hidden_size)
         self.classifier = nn.Linear(hidden_size, vocab_size)
         self.dropout = nn.Dropout(p=0.5)
         self.transformer_xl = TransfoXLModel(self.xl_config)
@@ -129,7 +128,7 @@ class DecoderStory(nn.Module):
             copy_len = min(length - 1, self.mem_len - 1)
             caption[:copy_len] = captions[i][:copy_len]
 
-            outputs = self.transformer_xl(self.padding_len, caption.unsqueeze(0), mems)
+            outputs = self.transformer_xl(caption.unsqueeze(0), padding_len=self.padding_len, mems=mems)
             last_hidden_states, mems = outputs[:2] # last_hidden_states: (1, mem_len - 1, d_model)
             
             output = self.classifier(last_hidden_states.squeeze(0)) # (mem_len - 1, vocab_size)
