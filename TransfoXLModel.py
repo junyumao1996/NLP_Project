@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 from transformers import TransfoXLPreTrainedModel
-
+from transformers import AdaptiveEmbedding
+from transformers.modeling_transfo_xl import RelPartialLearnableMultiHeadAttn, \
+					PositionwiseFF, PositionalEmbedding
 
 class TransfoXLModel(TransfoXLPreTrainedModel):
     def __init__(self, config):
@@ -289,4 +291,22 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
         return outputs  # last hidden state, new_mems, (all hidden states), (all attentions)
 
 
+class RelPartialLearnableDecoderLayer(nn.Module):
+    def __init__(self, n_head, d_model, d_head, d_inner, dropout, layer_norm_epsilon=1e-5, **kwargs):
+        super().__init__()
 
+        self.dec_attn = RelPartialLearnableMultiHeadAttn(
+            n_head, d_model, d_head, dropout, layer_norm_epsilon=layer_norm_epsilon, **kwargs
+        )
+        self.pos_ff = PositionwiseFF(
+            d_model, d_inner, dropout, pre_lnorm=kwargs.get("pre_lnorm"), layer_norm_epsilon=layer_norm_epsilon
+        )
+
+    def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None):
+
+        attn_outputs = self.dec_attn(dec_inp, r, attn_mask=dec_attn_mask, mems=mems, head_mask=head_mask)
+        ff_output = self.pos_ff(attn_outputs[0])
+
+        outputs = [ff_output] + attn_outputs[1:]
+
+        return outputs

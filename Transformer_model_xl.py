@@ -48,7 +48,7 @@ class EncoderStory(nn.Module):
     def __init__(self, img_feature_size, config):
         super(EncoderStory, self).__init__()
 
-        self.cnn = EncoderCNN(img_feature_size, config)
+        self.cnn = EncoderCNN(img_feature_size)
 
     def get_params(self):
         return self.cnn.get_params()
@@ -61,7 +61,7 @@ class EncoderStory(nn.Module):
         image_features = self.cnn(story_images.view(-1, data_size[2], data_size[3], data_size[4])) # (batch * 5, img_feature_size)
         image_features = image_features.view(data_size[0], data_size[1], -1) # (batch, 5, img_feature_size)
 
-        return image_features
+        return image_features, None
 
 class DecoderStory(nn.Module):
     def __init__(self, embed_size, encoder_output_size, hidden_size, n_head, n_layers, mem_len, vocab, config):
@@ -79,8 +79,10 @@ class DecoderStory(nn.Module):
         self.hidden_size = hidden_size
         self.mem_len = mem_len
         self.n_layers = n_layers
+        self.padding_len = mem_len - 1
 
-        self.fuse_linear = nn.Linear(hidden_size + mem_len, hidden_size)
+        # self.fuse_linear = nn.Linear(hidden_size + mem_len, hidden_size)
+        self.fuse_linear = nn.Linear(hidden_size * 2, hidden_size)
         self.classifier = nn.Linear(hidden_size, vocab_size)
         self.dropout = nn.Dropout(p=0.5)
         self.transformer_xl = TransfoXLModel(self.xl_config)
@@ -127,7 +129,7 @@ class DecoderStory(nn.Module):
             copy_len = min(length - 1, self.mem_len - 1)
             caption[:copy_len] = captions[i][:copy_len]
 
-            outputs = self.transformer_xl(caption.unsqueeze(0), padding_len=self.mem_len - 1, mems=mems)
+            outputs = self.transformer_xl(self.padding_len, caption.unsqueeze(0), mems)
             last_hidden_states, mems = outputs[:2] # last_hidden_states: (1, mem_len - 1, d_model)
             
             output = self.classifier(last_hidden_states.squeeze(0)) # (mem_len - 1, vocab_size)
