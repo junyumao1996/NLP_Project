@@ -12,8 +12,9 @@ from data_loader import get_loader
 from torch.autograd import Variable
 from torchvision import transforms
 from build_vocab import Vocabulary
-from Transformer_model_v1 import EncoderStory, DecoderStory
-from Transformer_model_v2 import EncoderStory2
+# from Transformer_model_v1 import EncoderStory, DecoderStory
+# from Transformer_model_v2 import EncoderStory2
+from Transformer_model_xl import EncoderStory, DecoderStory
 from PIL import Image
 import json
 
@@ -51,6 +52,9 @@ parser.add_argument('--vocab_path', type=str, default='./models/vocab.pkl',
 parser.add_argument('--config_path', type=str,
                     default='./config/config.yaml',
                     help='path for configuration file')
+parser.add_argument('--pad', dest='pad', action='store_true', default=False, help='use padding')
+parser.add_argument('--mem_len', type=int, default=50, help='length of memory used in Transformer-XL')
+parser.add_argument('--per', dest='perlexity_check', action='store_true', default=False, help='test perplexity')
 
 parser.add_argument('--img_feature_size', type=int , default=1024 ,
                     help='dimension of image feature')
@@ -90,17 +94,21 @@ with open(args.config_path, 'r') as f:
 
 data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
+###### transfomrer decoder ######
 # encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
 # decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab)
-encoder = EncoderStory2(args.img_feature_size, 4, 3)
-decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
+###### full transformer ######
+# encoder = EncoderStory2(args.img_feature_size, 4, 3)
+# decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
+###### transfomrer XL ######
+encoder = EncoderStory(args.img_feature_size, config)
+decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 1, args.mem_len, vocab, config)
 
 encoder.load_state_dict(torch.load(encoder_path))
 decoder.load_state_dict(torch.load(decoder_path))
 
 encoder.eval()
 decoder.eval()
-
 if torch.cuda.is_available():
     encoder.cuda()
     decoder.cuda()
@@ -132,7 +140,11 @@ for bi, (image_stories, targets_set, lengths_set, photo_sequence_set, album_ids_
         outputs = decoder(feature, captions, lengths)
 
         for sj, result in enumerate(zip(outputs, captions, lengths)):
-            loss += criterion(result[0], result[1][0:result[2]])
+            if args.pad:
+                padded_len = min(result[2], args.mem_len)
+                loss += criterion(result[0][:padded_len], result[1][:padded_len])
+            else:
+                loss += criterion(result[0], result[1][0:result[2]])
 
         inference_results = decoder.inference(feature)
 

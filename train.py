@@ -187,7 +187,7 @@ def main(args):
             torch.save(decoder.state_dict(), os.path.join(args.model_path, 'decoder-%d.pkl' %(epoch+1)))
             torch.save(encoder.state_dict(), os.path.join(args.model_path, 'encoder-%d.pkl' %(epoch+1)))
             torch.save(optimizer.state_dict(), os.path.join(args.model_path, 'optimizer-%d.pkl' %(epoch+1)))
-
+            print("Model sucessfully saved. ")
             min_avg_loss = avg_loss
         else:
             overfit_warn += 1

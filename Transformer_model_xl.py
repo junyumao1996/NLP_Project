@@ -68,6 +68,7 @@ class DecoderStory(nn.Module):
         super(DecoderStory, self).__init__()
 
         vocab_size = len(vocab)
+        self.vocab = vocab
 
         self.xl_config = TransfoXLConfig(
             vocab_size=vocab_size, d_model=hidden_size, d_embed=embed_size, n_head=n_head, div_val=1, 
@@ -85,6 +86,7 @@ class DecoderStory(nn.Module):
         self.classifier = nn.Linear(hidden_size, vocab_size)
         self.dropout = nn.Dropout(p=0.5)
         self.transformer_xl = TransfoXLModel(self.xl_config)
+        self.softmax = nn.Softmax(0)
 
         # define start vector for a sentence
         self.start_vec = torch.zeros([1, vocab_size], dtype=torch.float32)
