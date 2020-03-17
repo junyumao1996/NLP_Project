@@ -89,37 +89,6 @@ class EncoderStory2(nn.Module):
         return memory_output, None
 
 
-class DecoderStory(nn.Module):
-    def __init__(self, embed_size, nhead, n_layers, hidden_size, vocab, dropout=0.5, pretrain_embed=False):
-        super(DecoderStory, self).__init__()
-
-        self.embed_size = embed_size
-        self.linear = nn.Linear(hidden_size * 2, embed_size)
-        self.dropout = nn.Dropout(dropout)
-        self.transformer = DecoderTransformer(embed_size, nhead, n_layers, vocab, dropout, pretrain_embed)
-        self.init_weights()
-
-    def get_params(self):
-        return list(self.parameters())
-
-    def init_weights(self):
-        self.linear.weight.data.normal_(0.0, 0.02)
-        self.linear.bias.data.fill_(0)
-
-    def forward(self, story_feature, captions, lengths):
-        story_feature = self.linear(story_feature)
-        story_feature = self.dropout(story_feature)
-        story_feature = F.relu(story_feature)
-        result = self.transformer(story_feature, captions, lengths)
-        return result
-
-    def inference(self, story_feature):
-        story_feature = self.linear(story_feature)
-        story_feature = F.relu(story_feature)
-        result = self.transformer.inference(story_feature)
-        return result
-
-
 class PositionalEncoding(nn.Module):
 
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -140,16 +109,3 @@ class PositionalEncoding(nn.Module):
         '''
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
-
-
-def load_pretrained_embed(vocab, embed_size, wv_model):
-    """
-    Transfer pre-trained embedding model to current vocabulary.
-    """
-    vocab_size = len(vocab)
-    pre_matrix = np.zeros((vocab_size, embed_size))
-    for token in vocab.word2idx.keys():
-        idx = vocab.word2idx[token]
-        if token in wv_model.vocab:
-            pre_matrix[idx, :] = wv_model[token]
-    return torch.FloatTensor(pre_matrix)

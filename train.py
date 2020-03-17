@@ -66,7 +66,7 @@ def main(args):
     # encoder = EncoderStory2(args.img_feature_size, 4, 3)
     # decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab, pretrain_embed=args.static_embedding)
     encoder = EncoderStory(args.img_feature_size, config)
-    decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 1, args.mem_len, vocab, config)
+    decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 3, args.mem_len, vocab, config)
 
     pretrained_epoch = 0
     if args.pretrained_epoch > 0:

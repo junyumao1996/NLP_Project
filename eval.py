@@ -102,7 +102,7 @@ data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size,
 # decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
 ###### transfomrer XL ######
 encoder = EncoderStory(args.img_feature_size, config)
-decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 1, args.mem_len, vocab, config)
+decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 3, args.mem_len, vocab, config)
 
 encoder.load_state_dict(torch.load(encoder_path))
 decoder.load_state_dict(torch.load(decoder_path))
