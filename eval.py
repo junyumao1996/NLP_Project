@@ -99,7 +99,7 @@ data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size,
 # decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab)
 ###### full transformer ######
 encoder = EncoderStory2(args.img_feature_size, 4, 1)
-decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
+decoder = DecoderStory2(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
 ###### transfomrer XL ######
 # encoder = EncoderStory(args.img_feature_size, config)
 # decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 3, args.mem_len, vocab, config)
