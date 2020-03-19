@@ -193,7 +193,8 @@ class DecoderTransformer(nn.Module):
 
         for i, length in enumerate(lengths):
             tgt = embeddings[i][0:length - 1]
-            memory = features[i]
+            # memory = features[i]
+            memory = features.squeeze(1)
             # generate mask for tgt
             if tgt_mask == True:
                 device = tgt.device
@@ -201,8 +202,9 @@ class DecoderTransformer(nn.Module):
                 if self.tgt_mask is None or self.tgt_mask.size(0) != len(tgt):
                     mask = self._generate_square_subsequent_mask(len(tgt)).to(device)
                     self.tgt_mask = mask
-                
+            # print("memory shape:", memory.shape)    
             output = self.transformer_decoder(tgt.unsqueeze(1), memory.unsqueeze(1), tgt_mask=self.tgt_mask)
+            # print("memory shape:", memory.unsqueeze(1).shape)
             output = self.decoder(output.squeeze(1))
             output = torch.cat((self.start_vec, output), 0)
             outputs.append(output)
@@ -229,7 +231,7 @@ class DecoderTransformer(nn.Module):
             # store all the previous outputs for next input
             next_input = [1]
             # initialize input for transformer decoder
-            infer_memory = feature
+            infer_memory = features.squeeze(1)
             infer_tgt = self.pos_encoder(self.encoder(torch.tensor(next_input, dtype=torch.long).cuda()).unsqueeze(1))
 
             sampled_ids = [predicted, ]

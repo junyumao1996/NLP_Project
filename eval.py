@@ -12,9 +12,9 @@ from data_loader import get_loader
 from torch.autograd import Variable
 from torchvision import transforms
 from build_vocab import Vocabulary
-# from Transformer_model_v1 import EncoderStory, DecoderStory
-# from Transformer_model_v2 import EncoderStory2
-from Transformer_model_xl import EncoderStory, DecoderStory
+from Transformer_model_v1 import EncoderStory, DecoderStory
+from Transformer_model_v2 import EncoderStory2, DecoderStory2
+# from Transformer_model_xl import EncoderStory, DecoderStory
 from PIL import Image
 import json
 
@@ -98,11 +98,11 @@ data_loader = get_loader(image_dir, sis_path, vocab, transform, args.batch_size,
 # encoder = EncoderStory(args.img_feature_size, args.hidden_size, args.num_layers)
 # decoder = DecoderStory(args.embed_size, 4, 1, args.hidden_size, vocab)
 ###### full transformer ######
-# encoder = EncoderStory2(args.img_feature_size, 4, 3)
-# decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
+encoder = EncoderStory2(args.img_feature_size, 4, 1)
+decoder = DecoderStory(args.embed_size, 4, 1, int(args.hidden_size/2), vocab)
 ###### transfomrer XL ######
-encoder = EncoderStory(args.img_feature_size, config)
-decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 3, args.mem_len, vocab, config)
+# encoder = EncoderStory(args.img_feature_size, config)
+# decoder = DecoderStory(args.embed_size, args.img_feature_size, args.hidden_size, 4, 3, args.mem_len, vocab, config)
 
 encoder.load_state_dict(torch.load(encoder_path))
 decoder.load_state_dict(torch.load(decoder_path))
