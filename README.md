@@ -1,8 +1,8 @@
-# Images2Story: Tell Stories from Image Streams
+# TranstoryXL: Tell Stories from Image Streams
 
-This repository is based on the implementation of [GLAC Net: GLocal Attention Cascading Network](https://arxiv.org/abs/1805.10973) for the [Visual Storytelling Challenge 2018](http://www.visionandlanguage.net/workshop2018) as a team SnuBiVtt. [Our model got the highest score in the human evaluation of the challenge.](http://aclweb.org/anthology/W18-1500)
+This repository provides codes to reproduce the work in [TranstoryXL: Tell Stories from Image Streams], which serves as course COMP0084 Statisitical Natural Language Processing's final project of Team 33: Junyu Mao, Tianji Liu, Jiaqi Wang, Hengjia Li (all contribute equally) at UCL. 
 
-![Architecture of GLocal Attention Cascading Network](misc/architecture.jpg)
+![Architecture of GLocal Attention Cascading Network](misc/TranstoryXL.png)
 
 <br>
 
@@ -15,10 +15,10 @@ Python 3.6 or 2.7<br>
 
 ### Prerequisites
 
-##### 1. Clone the repository
+##### 1. Clone the repository to local
 ```
-git clone https://github.com/tkim-snu/GLACNet.git
-cd GLACNet
+git clone https://github.com/junyumao1996/NLP_Project.git
+cd NLP_Project
 ```
 
 ##### 2. Download requirements
@@ -80,30 +80,16 @@ The result.json file will be found in the root directory.
 
 <br>
 
-
-### Pretrained model
-
-We provide the pretrained model(for Python3).
-Please download the [link](https://drive.google.com/drive/folders/10vBPeETCKZfdOr2zenB_WlmKDcRBHmYR?usp=sharing) and move to `<GLACNet root>/models/`.
-
-<br>
-
-### Citation
-
-```
-@article{Kim2018GLAC,
-title={GLAC Net: GLocal Attention Cascading Networks for Multi-image Cued Story Generation},
-author={Taehyeong Kim and Min-Oh Heo and Seonil Son and Kyoung-Wha Park and Byoung-Tak Zhang},
-journal={CoRR},
-year={2018},
-volume={abs/1805.10973}
-}
-```
+### Preparation for running the demo on Colab
+1. Upload all the files in this repository to your google drive.
+2. Upload ``test.zip`` to ``<project_root>/data``, ``test.story-in-sequence.json`` to ``<project_root>/data/sis`` (you may need to make a new directory).
+3. Upload the saved Transtory-XL model to ``<project_root>/models``.
+4. Modify the path in the third code block of the notebook to be your project root path. 
 
 <br>
+
 
 ### License
 
 MIT License<br>
-This repository refer to [pytorch tutorial](https://github.com/yunjey/pytorch-tutorial) by [yunjey](https://github.com/yunjey).
 
