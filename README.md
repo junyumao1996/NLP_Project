@@ -83,7 +83,7 @@ The result.json file will be found in the root directory.
 ### Preparation for running the demo on Colab
 1. Upload all the files in this repository to your google drive.
 2. Upload ``test.zip`` to ``<project_root>/data``, ``test.story-in-sequence.json`` to ``<project_root>/data/sis`` (you may need to make a new directory).
-3. Upload the saved Transtory-XL model and vocab file to ``<project_root>/models``.
+3. Upload the saved Transtory-XL model and vocab file (three ``.pkl`` files) to ``<project_root>/models``.
 4. Modify the path in the third code block of the notebook to be your project root path. 
 
 <br>
