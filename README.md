@@ -86,7 +86,6 @@ The result.json file will be found in the root directory.
 3. Upload the saved Transtory-XL model and vocab file (three ``.pkl`` files) to ``<project_root>/models``.
 4. Modify the path in the third code block of the notebook "demo-transformer-xl.ipynb" to be your project root path. While running the notebook, please note that 
   * you may need to authrise colab the access to your google drive, by logging in you google account via the link given during processing.
-  * while processing the zip file, you will need to type "A" for "ALL" to replace all zipped images. If this option doesn't pop up, please try to restart and re-run the notebook.
 <br>
 
 
